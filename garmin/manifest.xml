@@ -4,6 +4,7 @@
         entry="PulseLinkApp"
         id="d3fc4b7e-831a-4e9b-b5f2-7c4e3a9d1b0f"
         minSdkVersion="4.2.0"
+        launcherIcon="@Drawables.LauncherIcon"
         name="@Strings.AppName"
         type="widget">
 
