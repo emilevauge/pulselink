@@ -97,12 +97,21 @@ class PulseLinkView extends WatchUi.View {
             );
         }
 
-        // Status footer
-        dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
+        // Status footer — show whether the background event is armed
+        var statusText;
+        var statusColor;
+        if (app.alarmScheduled) {
+            statusText = "Alarm scheduled";
+            statusColor = 0x4CAF50;
+        } else {
+            statusText = "Waiting for phone...";
+            statusColor = Graphics.COLOR_DK_GRAY;
+        }
+        dc.setColor(statusColor, Graphics.COLOR_TRANSPARENT);
         dc.drawText(
             cx, cy + 110,
             Graphics.FONT_XTINY,
-            "Listening for phone...",
+            statusText,
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER
         );
     }

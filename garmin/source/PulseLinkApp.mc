@@ -1,8 +1,12 @@
 using Toybox.Application;
+using Toybox.Application.Storage;
+using Toybox.Background;
 using Toybox.Communications as Comm;
 using Toybox.WatchUi;
 using Toybox.Attention;
 using Toybox.Timer;
+using Toybox.Time;
+using Toybox.Time.Gregorian;
 using Toybox.Lang;
 using Toybox.System;
 
@@ -10,6 +14,7 @@ class PulseLinkApp extends Application.AppBase {
 
     var alarmHour = null;
     var alarmMinute = null;
+    var alarmScheduled = false;
     var isAlarming = false;
     var vibeTimer = null;
 
@@ -19,10 +24,33 @@ class PulseLinkApp extends Application.AppBase {
 
     function onStart(state) {
         Comm.registerForPhoneAppMessages(method(:onPhoneMessage));
+
+        // Restore persisted alarm on app start
+        alarmHour = Storage.getValue("alarmHour");
+        alarmMinute = Storage.getValue("alarmMinute");
+        alarmScheduled = (Storage.getValue("alarmScheduled") != null);
     }
 
     function getInitialView() {
         return [new PulseLinkView(), new PulseLinkDelegate()];
+    }
+
+    // Called by the system when our background service delegate
+    // exits via Background.exit(data). Runs in main app context
+    // with full API access (Attention, WatchUi, etc.).
+    function onBackgroundData(data) {
+        if (data instanceof Lang.Dictionary && data["trigger"] != null) {
+            isAlarming = true;
+            alarmScheduled = false;
+            Storage.deleteValue("alarmScheduled");
+            startAlarm();
+            WatchUi.requestUpdate();
+        }
+    }
+
+    // Return the background service delegate for temporal events
+    function getServiceDelegate() {
+        return [new PulseLinkServiceDelegate()];
     }
 
     function onPhoneMessage(msg) {
@@ -39,19 +67,67 @@ class PulseLinkApp extends Application.AppBase {
                 alarmMinute = data["minute"];
                 isAlarming = false;
                 stopVibeTimer();
+                scheduleTemporalEvent(alarmHour, alarmMinute);
                 WatchUi.requestUpdate();
             } else if (type != null && type.equals("alarm_trigger")) {
-                isAlarming = true;
-                startAlarm();
-                WatchUi.requestUpdate();
+                // Backup trigger from phone (in case temporal event
+                // couldn't fire, e.g. app was killed by the system)
+                if (!isAlarming) {
+                    isAlarming = true;
+                    alarmScheduled = false;
+                    startAlarm();
+                    WatchUi.requestUpdate();
+                }
             } else if (type != null && type.equals("alarm_clear")) {
                 alarmHour = null;
                 alarmMinute = null;
                 isAlarming = false;
+                alarmScheduled = false;
                 stopVibeTimer();
+                cancelTemporalEvent();
                 WatchUi.requestUpdate();
             }
         }
+    }
+
+    // Schedule a background temporal event at the given hour:minute.
+    // The system will wake PulseLinkServiceDelegate at that time,
+    // even if the app is not in the foreground.
+    function scheduleTemporalEvent(hour, minute) {
+        var now = Time.now();
+        var nowInfo = Gregorian.info(now, Time.FORMAT_SHORT);
+
+        var alarmMoment = Gregorian.moment({
+            :year => nowInfo.year,
+            :month => nowInfo.month,
+            :day => nowInfo.day,
+            :hour => hour,
+            :minute => minute,
+            :second => 0
+        });
+
+        // If the alarm time already passed today, schedule for tomorrow
+        if (alarmMoment.value() <= now.value()) {
+            alarmMoment = alarmMoment.add(new Time.Duration(86400));
+        }
+
+        // Only one temporal event can be active at a time;
+        // calling this again replaces the previous one.
+        Background.registerForTemporalEvent(alarmMoment);
+        alarmScheduled = true;
+
+        // Persist so we can restore state if the app restarts
+        Storage.setValue("alarmHour", hour);
+        Storage.setValue("alarmMinute", minute);
+        Storage.setValue("alarmScheduled", true);
+    }
+
+    function cancelTemporalEvent() {
+        Background.deleteTemporalEvent();
+        alarmScheduled = false;
+        Storage.deleteValue("alarmHour");
+        Storage.deleteValue("alarmMinute");
+        Storage.deleteValue("alarmScheduled");
     }
 
     function startAlarm() {
