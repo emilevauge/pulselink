@@ -35,6 +35,13 @@ class PulseLinkApp extends Application.AppBase {
         return [new PulseLinkView(), new PulseLinkDelegate()];
     }
 
+    // Glance view stays loaded in the widget loop, keeping the app
+    // resident so phone messages and onBackgroundData() are delivered.
+    (:glance)
+    function getGlanceView() {
+        return [new PulseLinkGlanceView()];
+    }
+
     // Called by the system when our background service delegate
     // exits via Background.exit(data). Runs in main app context
     // with full API access (Attention, WatchUi, etc.).
