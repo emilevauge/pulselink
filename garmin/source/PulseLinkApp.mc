@@ -60,7 +60,7 @@ class PulseLinkApp extends Application.AppBase {
         return [new PulseLinkServiceDelegate()];
     }
 
-    function onPhoneMessage(msg) {
+    function onPhoneMessage(msg as Comm.PhoneAppMessage) as Void {
         var data = msg.data;
         if (data == null) {
             return;
@@ -144,7 +144,7 @@ class PulseLinkApp extends Application.AppBase {
         vibeTimer.start(method(:onVibeTimer), 5000, true);
     }
 
-    function onVibeTimer() {
+    function onVibeTimer() as Void {
         if (isAlarming) {
             doVibrate();
         } else {
