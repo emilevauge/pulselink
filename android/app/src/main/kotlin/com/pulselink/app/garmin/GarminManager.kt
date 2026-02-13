@@ -34,6 +34,12 @@ class GarminManager(private val context: Context) {
     val connectionState: StateFlow<ConnectionState> = _connectionState
 
     fun initialize() {
+        if (!isGarminConnectInstalled()) {
+            Log.w(TAG, "Garmin Connect Mobile is not installed — skipping SDK init")
+            _connectionState.value = ConnectionState.ERROR
+            return
+        }
+
         _connectionState.value = ConnectionState.SDK_INITIALIZING
         try {
             connectIQ = ConnectIQ.getInstance(context, ConnectIQ.IQConnectType.WIRELESS)
@@ -57,6 +63,15 @@ class GarminManager(private val context: Context) {
         } catch (e: Exception) {
             Log.e(TAG, "Failed to initialize ConnectIQ", e)
             _connectionState.value = ConnectionState.ERROR
+        }
+    }
+
+    private fun isGarminConnectInstalled(): Boolean {
+        return try {
+            context.packageManager.getPackageInfo("com.garmin.android.apps.connectmobile", 0)
+            true
+        } catch (e: Exception) {
+            false
         }
     }
 

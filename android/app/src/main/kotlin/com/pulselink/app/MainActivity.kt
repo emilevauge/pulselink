@@ -37,9 +37,9 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private val notificationPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { /* proceed regardless of result */ }
+    private val permissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { /* proceed regardless of results */ }
 
     private val exactAlarmPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -84,12 +84,26 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun requestPermissions() {
+        val needed = mutableListOf<String>()
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT)
+                != PackageManager.PERMISSION_GRANTED
+            ) {
+                needed.add(Manifest.permission.BLUETOOTH_CONNECT)
+            }
+        }
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
                 != PackageManager.PERMISSION_GRANTED
             ) {
-                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                needed.add(Manifest.permission.POST_NOTIFICATIONS)
             }
+        }
+
+        if (needed.isNotEmpty()) {
+            permissionLauncher.launch(needed.toTypedArray())
         }
     }
 

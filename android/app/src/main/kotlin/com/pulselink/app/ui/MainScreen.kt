@@ -250,6 +250,9 @@ private fun GarminManager.ConnectionState.displayName(): String = when (this) {
 }
 
 private fun canScheduleExactAlarms(context: Context): Boolean {
+    if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.S) {
+        return true // exact alarms are always allowed before Android 12
+    }
     val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
     return alarmManager.canScheduleExactAlarms()
 }
