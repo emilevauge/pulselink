@@ -5,6 +5,8 @@ import android.util.Log
 import com.garmin.android.connectiq.ConnectIQ
 import com.garmin.android.connectiq.IQApp
 import com.garmin.android.connectiq.IQDevice
+import com.garmin.android.connectiq.exception.InvalidStateException
+import com.garmin.android.connectiq.exception.ServiceUnavailableException
 import com.pulselink.app.PulseLinkApp
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -149,9 +151,9 @@ class GarminManager(private val context: Context) {
                     Log.d(TAG, "sendMessage status: $status")
                 }
             })
-        } catch (e: ConnectIQ.InvalidStateException) {
+        } catch (e: InvalidStateException) {
             Log.e(TAG, "ConnectIQ SDK not initialized", e)
-        } catch (e: ConnectIQ.ServiceUnavailableException) {
+        } catch (e: ServiceUnavailableException) {
             Log.e(TAG, "Garmin Connect Mobile not available", e)
         } catch (e: Exception) {
             Log.e(TAG, "Error sending message", e)
